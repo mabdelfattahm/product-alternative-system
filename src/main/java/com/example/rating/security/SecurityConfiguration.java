@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +26,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.sql.DataSource;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -41,12 +45,12 @@ public class SecurityConfiguration {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
+   // @Bean
     public UserDetailsService userDetailsService(DataSource dataSource) {
         if (userService.findUserByUsername("user1").isEmpty()) {
             User user = new User();
             user.setUsername("user1");
-            user.setPassword(passwordEncoder().encode("password")); // Plaintext; will be hashed
+            user.setPassword(passwordEncoder().encode("password"));
             user.setRole("NORMAL_USER");
             userService.saveUser(user);
         }
@@ -61,7 +65,7 @@ public class SecurityConfiguration {
         return new JdbcUserDetailsManager(dataSource);
     }
 
-    @Bean
+    /*@Bean
     SecurityFilterChain basicFilterChain(HttpSecurity http, AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
         configureDefaultSecurity(http, authenticationManagerBuilder);
         return http.build();
@@ -82,6 +86,18 @@ public class SecurityConfiguration {
         filter.setRequestMatcher(new AntPathRequestMatcher("/admin-login", "POST"));
         filter.setSuccessHandler((request, response, authentication) -> {});
         return filter;
+    }*/
+
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(requests -> requests.requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .anyRequest().authenticated());
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.httpBasic(withDefaults());
+        http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+        http.csrf(AbstractHttpConfigurer::disable);
+        return http.build();
     }
 
 }

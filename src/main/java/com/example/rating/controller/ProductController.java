@@ -39,4 +39,16 @@ public class ProductController {
     public void approveProduct(@PathVariable Long id) {
         productService.approveProduct(id);
     }
+
+    @GetMapping("/test")
+    @PreAuthorize("hasRole('NORMAL_USER')")
+    public String testNormal() {
+        return "hi employee";
+    }
+
+    @GetMapping("/test2")
+    @PreAuthorize("hasRole('MODERATOR')")
+    public String testModerator() {
+        return "hi Boss";
+    }
 }
